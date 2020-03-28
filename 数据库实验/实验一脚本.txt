@@ -1,0 +1,92 @@
+create table Book(
+    -> ID char(8),
+    -> name varchar(10) not null,
+    -> author varchar(10),
+    -> price float,
+    -> status int default 0,
+    -> primary key (ID),
+    -> check (status in (1,0)))
+    -> ;
+
+create table Reader(
+    -> ID char(8),
+    -> name varchar(10),
+    -> age int,
+    -> address varchar(20),
+    -> primary key (ID));
+
+ create table Borrow(
+    -> book_ID char(8),
+    -> Reader_ID char(8),
+    -> Borrow_Date date,
+    -> Return_Date date,
+    -> primary key (book_ID, Reader_ID),
+    -> foreign key (book_ID) references Book(ID),
+    -> foreign key (Reader_ID) references Reader(ID));
+
+insert into book values('00000001','百年孤独','加西亚.马尔可夫',56.0,0);
+
+insert into book values('00000002','霍比特人','托尔金',87.0,0);
+
+ insert into book values('00000003','共产党的宣言','马克思',87.0,0);
+
+ insert into book values('00000004','呼兰河传','萧红',34.0,0);
+
+insert into book values('00000005','战争与和平','托尔斯泰',67.0,0);
+
+insert into book values('00000006','憨憨传','石济帆',7.0,0);
+
+insert into reader values('17071447','憨憨帆','20','合肥');
+
+insert into reader values('17071449','谭邵杰','20','长沙');
+
+ insert into reader values('17071499','代哿','20','阜阳');
+
+ insert into borrow values('00000006','17071447','2019/10/02',null);
+
+insert into borrow values('00000005','17071447','2019/07/02','2019/10/02');
+
+insert into book (name,author,price,status) values('kkk','igkd','99.0',1);//报错， Field 'ID' doesn't have a default value，实体完整性
+
+insert into borrow values('00000000','17071447','2019/10/02',null);//报错， Cannot add or update a child row: a foreign key constraint fails (`library`.`borrow`, CONSTRAINT `borrow_ibfk_1` FOREIGN KEY (`book_ID`) REFERENCES `book` (`ID`))，参照完整性
+
+insert into book (ID,author,price,status) values('00000009','kkk',99.0,1);//报错，ERROR 1364 (HY000): Field 'name' doesn't have a default value，用户自定义完整性
+
+insert into reader values('00000001','Rose',21,'北京');
+
+insert into borrow values('00000002','00000001','2019/10/08',null);
+
+insert into borrow values('00000003','00000001','2019/10/08','2019/12/08');
+
+select id,address from reader where name='Rose';
+
+ select book.name,borrow_date from book,reader,borrow where reader.name='Rose' and borrow.book_id=book.id and reader.id=borrow.reader_id;
+
+select name from reader where name not in (select distinct name from reader,borrow where reader.id=borrow.reader_id);
+
+insert into book values('00000007','乌合之众','Ullman',98.1,0);
+
+select name,price from book where author='Ullman';
+
+select book.id, book.name from reader,borrow,book where reader.id=borrow.reader_id and borrow.book_id=book.id and reader.name='李林' and borrow.return_date is null;
+
+insert into borrow values('00000001','17071447','2019/11/11','2020/1/10');
+
+insert into borrow values('00000002','17071447','2019/12/01',null);
+
+select name from reader, borrow where reader.id=borrow.reader_id group by reader.id having count(book_id)>3;
+
+ select name from reader where id not in (select reader.id from reader, borrow where reader.id=borrow.reader_id and borrow.book_id in (select book_id from borrow, reader where reader.id=borrow.reader_id and reader.name='李林'));
+
+insert into book values('00000008','Oracle基础','armstrong',47.3,0);
+
+ select name ,id from book where name like '%Oracle%';
+
+ create view reader_borrow_view (reader_id, reader_name, book_id, book_name, borrow_date) as select reader.id, reader.name, book.id, book.name, borrow.borrow_date from reader, borrow, book where reader.id=borrow.reader_id and borrow.book_id=book.id;
+
+ insert into borrow values ('00000003','17071447','2017/12/01','2018/7/8');
+
+select reader_id, count(book_id) from reader_borrow_view where date_sub(curdate(), interval 1 year)<=borrow_date group by reader_id;
+
+
+
