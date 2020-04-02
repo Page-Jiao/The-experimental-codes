@@ -1,0 +1,85 @@
+select id,address from reader where name='Rose';
+
+select book.name,borrow_date from book,reader,borrow where reader.name='Rose' and borrow.book_id=book.id and reader.id=borrow.reader_id;
+
+select name from reader where name not in (select distinct name from reader,borrow where reader.id=borrow.reader_id);
+
+select name,price from book where author='Ullman';
+
+select book.id, book.name from reader,borrow,book where reader.id=borrow.reader_id and borrow.book_id=book.id and reader.name='李林' and borrow.return_date is null;
+
+select name from reader, borrow where reader.id=borrow.reader_id group by reader.id having count(*)>3;
+
+select name, id from reader where id not in (select reader.id from reader, borrow where reader.id=borrow.reader_id and borrow.book_id in (select book_id from borrow, reader where reader.id=borrow.reader_id and reader.name='李林'));
+
+select name ,id from book where name like '%Oracle%';
+
+create view reader_borrow_view (reader_id, reader_name, book_id, book_name, borrow_date) as select reader.id, reader.name, book.id, book.name, borrow.borrow_date from reader, borrow, book where reader.id=borrow.reader_id and borrow.book_id=book.id;
+
+select reader_id, count(book_id) from reader_borrow_view where date_sub(curdate(), interval 1 year)<=borrow_date group by reader_id;
+
+
+
+
+delimiter //
+DROP PROCEDURE IF EXISTS check_status;
+CREATE PROCEDURE check_status (out num INT)
+BEGIN
+	DECLARE count INT;
+	DECLARE state INT DEFAULT 0;
+	DECLARE cur_id char(8);
+	DECLARE cur_status INT;
+	DECLARE not_return CURSOR FOR SELECT book.id, book.`status` FROM book, borrow WHERE book.ID=borrow.book_ID and borrow.Return_Date IS NULL;
+	DECLARE not_borrow CURSOR FOR SELECT id , book.status FROM book WHERE id NOT IN (SELECT borrow.book_ID FROM borrow);
+	DECLARE CONTINUE HANDLER FOR NOT FOUND SET state=1;
+	SET count=0;
+	OPEN not_return;
+	REPEAT
+	FETCH not_return INTO cur_id, cur_status;
+	IF cur_status=0 THEN
+		SET count=count+1;
+	END IF;
+	UNTIL state=1
+	END REPEAT;
+	CLOSE not_return;
+	SET state=0;
+	OPEN not_borrow;
+	REPEAT
+	FETCH not_borrow INTO cur_id, cur_status;
+	IF cur_status=1 THEN
+		SET count=count+1;
+	END IF;
+	UNTIL state=1
+	END REPEAT;
+END//
+delimiter ;
+
+delimiter //
+DROP PROCEDURE IF EXISTS update_book_id;
+CREATE PROCEDURE update_book_id (in new_id CHAR(8), in old_id CHAR(8))
+BEGIN
+	SET FOREIGN_key_checks=0;
+	UPDATE book set book.ID=new_id WHERE book.ID=old_id;
+	UPDATE borrow set borrow.book_ID=new_id WHERE borrow.book_ID=old_id;
+	SET FOREIGN_key_checks=1;
+END //
+delimiter ;
+
+
+delimiter //
+DROP TRIGGER IF EXISTS update_status;
+CREATE TRIGGER update_status AFTER INSERT ON borrow FOR EACH ROW
+BEGIN
+	UPDATE book SET status=1 WHERE id=new.book_id;
+END //
+delimiter ;
+
+delimiter //
+DROP TRIGGER IF EXISTS update_status_update;
+CREATE TRIGGER update_status_update AFTER UPDATE ON borrow FOR EACH ROW
+BEGIN
+	IF new.return_date IS NOT NULL AND old.return_date IS NULL THEN
+		UPDATE book SET status=0 WHERE id=new.book_id;
+	END IF;
+END //
+delimiter ;

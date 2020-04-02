@@ -1,0 +1,1 @@
+Lab2源代码见主文件夹lab2目录,vivado项目见主文件夹project_riscv_cpu目录
