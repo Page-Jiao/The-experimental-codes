@@ -30,5 +30,41 @@ module BranchDecision(
     );
 
     // TODO: Complete this module
+    wire signed [31:0] sigend_reg1=$signed(reg1);//确定符号拓展属性
+    wire signed [31:0] sigend_reg2=$signed(reg2);//确定符号拓展属性
 
+    always@(*)
+    begin
+        case (br_type)
+            `NOBRANCH: br<=1'b0;
+            `BEQ: //相等跳转
+                if(reg1==reg2) 
+                    br<=1'b1;
+                else
+                    br<=1'b0;
+            `BNE: //不相等跳转
+                if(reg1!=reg2)
+                    br<=1'b1;
+                else
+                    br<=1'b0;
+            `BLT: //小于跳转（有符号）
+                if(sigend_reg1<sigend_reg2)
+                    br<=1'b1;
+                else
+                    br<=1'b0;
+            `BLTU:
+                if(reg1<reg2)
+                    br<=1'b1;
+                else
+                    br<=1'b0;
+            `BGE: //大于跳转
+                if(sigend_reg1>sigend_reg2)
+                    br<=1'b1;
+                else
+                    br<=1'b0;
+            default: br<=1'b0;
+        endcase
+    end
 endmodule
+
+//完成实现
