@@ -27,9 +27,9 @@ insert into book values('00000001','百年孤独','加西亚.马尔可夫',56.0,
 
 insert into book values('00000002','霍比特人','托尔金',87.0,0);
 
- insert into book values('00000003','共产党的宣言','马克思',87.0,0);
+insert into book values('00000003','共产党的宣言','马克思',87.0,0);
 
- insert into book values('00000004','呼兰河传','萧红',34.0,0);
+insert into book values('00000004','呼兰河传','萧红',34.0,0);
 
 insert into book values('00000005','战争与和平','托尔斯泰',67.0,0);
 
@@ -39,9 +39,9 @@ insert into reader values('17071447','憨憨帆','20','合肥');
 
 insert into reader values('17071449','谭邵杰','20','长沙');
 
- insert into reader values('17071499','代哿','20','阜阳');
+insert into reader values('17071499','代哿','20','阜阳');
 
- insert into borrow values('00000006','17071447','2019/10/02',null);
+insert into borrow values('00000006','17071447','2019/10/02',null);
 
 insert into borrow values('00000005','17071447','2019/07/02','2019/10/02');
 
