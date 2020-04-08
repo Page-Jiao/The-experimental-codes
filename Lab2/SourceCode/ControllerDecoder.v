@@ -36,20 +36,20 @@
 `include "Parameters.v"   
 module ControllerDecoder(
     input wire [31:0] inst,
-    output wire jal,
-    output wire jalr,
-    output wire op2_src,
-    output reg [3:0] ALU_func,
-    output reg [2:0] br_type,
-    output wire load_npc,
-    output wire wb_select,
-    output reg [2:0] load_type,
-    output reg [1:0] src_reg_en,
-    output reg reg_write_en,
-    output reg [3:0] cache_write_en,
-    output wire alu_src1,
-    output wire [1:0] alu_src2,
-    output reg [2:0] imm_type
+    output wire jal,//单独确定
+    output wire jalr,//单独确定
+    output wire op2_src,//单独确定
+    output reg [3:0] ALU_func,//统一确定
+    output reg [2:0] br_type,//单独确定
+    output wire load_npc,//单独确定
+    output wire wb_select,//单独确定
+    output reg [2:0] load_type,//统一确定
+    output reg [1:0] src_reg_en,//统一确定
+    output reg reg_write_en,//统一确定，实际和load_type绑定
+    output reg [3:0] cache_write_en,//统一确定
+    output wire alu_src1,//单独确定
+    output wire [1:0] alu_src2,//单独确定
+    output reg [2:0] imm_type//统一确定
     );
 
     // TODO: Complete this module
@@ -61,7 +61,18 @@ module ControllerDecoder(
     assign opcode=inst[6:0];
     assign funct_3_bits=inst[14:12];
     assign funct_7_bits=inst[31:25];
-
+    /*关于op2_src的注释
+    op2选择imm的情况如下：
+    1.立即数计算和移位指令ADDI、SLTI、SLTIU、XORI、ORI、ANDI，SLLI、SRLI、SRAI,opcode为0010011
+    2.LUI指令用op2构造u类立即数并输出为aluout，opcode为0110111
+    3.AUPIC指令将imm送入op2与pc相加，opcode为0010111
+    4.jal和jalr指令进行立即数相加opcode为1101111，1100111
+    5.br类指令选择imm进行与pc的加法
+    6.lw类指令地址计算
+    7.sw类指令地址计算
+    因此只有opcode为0110011的指令不需要使用imm
+    */
+    assign op2_src=(opcode==7'b0110011)?1'b0:1'b1;
     assign load_npc=jal | jalr;//跳转并链接指令导致pc被写入寄存器
     assign jal=(opcode==7'b1101111)?1'b1:1'b0;
     assign jalr=(opcode==7'b1100111)?1'b1:1'b0;
@@ -111,8 +122,10 @@ module ControllerDecoder(
             7'b0010011: //立即数指令（包含移位和计算）
             begin
                 load_type<=`LW;//32bits加载
+                reg_write_en<=1'b1;//需要写入寄存器
                 cache_write_en<=4'b0000;//不写cache
                 imm_type<=`ITYPE;
+                src_reg_en<=2'b10;//使用rs1不使用rs2
                 case (funct_3_bits)
                     3'b000: ALU_func<=`ADD;
                     3'b001: ALU_func<=`SLL;//实际为SLLI指令，但alu方式相同
@@ -134,7 +147,9 @@ module ControllerDecoder(
             7'b0110011: //寄存器-寄存器指令
             begin
                 load_type<=`LW;
+                reg_write_en<=1'b1;//需要写入寄存器
                 cache_write_en<=4'b0000;
+                src_reg_en<=2'b11;//使用rs1，使用rs2
                 imm_type<=`RTYPE;//此处设置R类立即数是否有必要？
                 case (funct_3_bits)
                     3'b000: 
@@ -165,6 +180,8 @@ module ControllerDecoder(
                 cache_write_en<=4'b0000;
                 imm_type<=`ITYPE;
                 ALU_func<=`ADD;
+                src_reg_en<=2'b10;//使用rs1不使用rs2
+                reg_write_en<=1'b1;//需要写入寄存器
                 case (funct_3_bits)
                     3'b000: load_type<=`LB;
                     3'b001: load_type<=`LH;
@@ -179,13 +196,71 @@ module ControllerDecoder(
                 ALU_func<=`ADD;
                 load_type<=`NOREGWRITE;
                 imm_type<=`STYPE;
+                src_reg_en<=2'b11;//使用rs1，使用rs2
+                reg_write_en<=1'b0;//不需要写入寄存器
                 case (funct_3_bits)
-                    3'b000: cache_write_en<=4'b0001;
-                     
-                    default: 
+                    3'b000: cache_write_en<=4'b0001;//SB
+                    3'b001: cache_write_en<=4'b0011;//SH
+                    3'b010: cache_write_en<=4'b1111;//sw
+                    default: cache_write_en<=4'b1111;//默认情况下为SW
                 endcase
             end
+            7'b0110111://LUI:加载u类立即数到rd
+            begin
+                load_type<=`LW;
+                src_reg_en<=2'b00;//不使用rs1不使用rs2
+                reg_write_en<=1'b1;//需要写入寄存器
+                cache_write_en<=4'b0000;
+                ALU_func<=`LUI;
+                imm_type<=`UTYPE;
+            end
+            7'b0010111://AUIPC:pc相对计算指令
+            begin
+                load_type<=`LW;
+                src_reg_en<=2'b00;//不使用rs1不使用rs2
+                reg_write_en<=1'b1;//需要写入寄存器
+                cache_write_en<=4'b0000;
+                ALU_func<=`ADD;
+                imm_type<=`UTYPE;
+            end
+            7'b1101111://JAL使用J类立即数
+            begin
+                load_type<=`LW;
+                src_reg_en<=2'b00;//不使用rs1不使用rs2
+                reg_write_en<=1'b1;//需要写入寄存器
+                cache_write_en<=4'b0000;
+                ALU_func<=`ADD;
+                imm_type<=`JTYPE;
+            end
+            7'b1100111://JALR使用I类立即数
+            begin
+                load_type<=`LW;
+                src_reg_en<=2'b10;//使用rs1不使用rs2
+                reg_write_en<=1'b1;//需要写入寄存器
+                ALU_func<=`ADD;
+                cache_write_en<=4'b0000;
+                imm_type<=`ITYPE; 
+            end
+            7'b1100011://branch指令
+            begin
+                load_type<=`NOREGWRITE;
+                reg_write_en<=1'b0;//不需要写入寄存器
+                src_reg_en<=2'b11;//使用rs1，使用rs2
+                ALU_func<=`ADD;//不需要alu参与，此处暂时赋为add指令
+                imm_type<=`BTYPE;
+                cache_write_en<=4'b0000;
+            end
             default: 
+            begin
+                load_type<=`NOREGWRITE;
+                reg_write_en<=1'b0;//不需要写入寄存器
+                src_reg_en<=2'b00;//不使用rs1不使用rs2
+                cache_write_en<=4'b0000;
+                ALU_func<=`ADD;
+                imm_type<=`ITYPE;
+            end
         endcase
     end
 endmodule
+
+//完成实现

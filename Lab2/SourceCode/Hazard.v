@@ -63,5 +63,11 @@ module HarzardUnit(
     );
 
     // TODO: Complete this module
-
+    always@(*)
+    begin
+        if(rst)//cpu restart，flush全部部件
+            {bubbleF,flushF,bubbleD,flushD,bubbleE,flushE,bubbleM,flushM,bubbleW,flushW} <= 10'b0101010101;
+        else if(br | jalr)
+            {bubbleF,flushF,bubbleD,flushD,bubbleE,flushE,bubbleM,flushM,bubbleW,flushW} <= 10'b0001010000;
+    end
 endmodule
