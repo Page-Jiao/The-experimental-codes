@@ -63,11 +63,56 @@ module HarzardUnit(
     );
 
     // TODO: Complete this module
+    //产生flush和bubble信号
     always@(*)
     begin
         if(rst)//cpu restart，flush全部部件
             {bubbleF,flushF,bubbleD,flushD,bubbleE,flushE,bubbleM,flushM,bubbleW,flushW} <= 10'b0101010101;
-        else if(br | jalr)
+        else if(br | jalr)//分支和jalr跳转指令，均在ex阶段得到有效地址，因此flush D和E
             {bubbleF,flushF,bubbleD,flushD,bubbleE,flushE,bubbleM,flushM,bubbleW,flushW} <= 10'b0001010000;
+        else if(jal)//单纯jal指令，id阶段得到有效地址，因此只flush D
+            {bubbleF,flushF,bubbleD,flushD,bubbleE,flushE,bubbleM,flushM,bubbleW,flushW} <= 10'b0001000000;
+        else if(wb_select & ((reg_dstE==reg1_srcD) || (reg_dstE==reg2_srcD)))
+            //此时为cache内容写入寄存器单元（即LW类指令），若写入的目的寄存器是执行阶段的源寄存器，需要bubble流水线，同时flush ex阶段的内容
+            {bubbleF,flushF,bubbleD,flushD,bubbleE,flushE,bubbleM,flushM,bubbleW,flushW} <= 10'b1010010000;
+        else
+            {bubbleF,flushF,bubbleD,flushD,bubbleE,flushE,bubbleM,flushM,bubbleW,flushW} <= 10'b0000000000;
+    end
+
+    //产生forward信号
+    //首先产生regsrc1
+    always@(*)
+    begin
+        if( (reg_write_en_MEM!=1'b0) && (src_reg_en[1]!=1'b0) && (reg_dstM==reg1_srcE) && (reg_dstM!=5'b00000) )
+            op1_sel<=2'b00;//采用aluout
+        else if( (reg_write_en_WB!=1'b0)  && (src_reg_en[1]!=1'b0) && (reg_dstW==reg1_srcE) && (reg_dstM!=5'b00000))
+            op1_sel<=2'b01;//来自write back
+        else if(alu_src1==1'b1)//来自pc
+            op1_sel<=2'b10;
+        else
+            op1_sel<=2'b11;//来自reg
+    end
+    //产生regsrc2的forward信号
+    always@(*)
+    begin
+        if( (reg_write_en_MEM!=1'b0) && (src_reg_en[0]!=1'b0) && (reg_dstM==reg2_srcE) && (reg_dstM!=5'b00000) )
+            op2_sel<=2'b00;//采用aluout
+        else if( (reg_write_en_WB!=1'b0)  && (src_reg_en[0]!=1'b0) && (reg_dstW==reg2_srcE) && (reg_dstM!=5'b00000))
+            op2_sel<=2'b01;//来自write back
+        else if(alu_src2==2'b01)//来自地址
+            op2_sel<=2'b10;
+        else
+            op2_sel<=2'b11;//来自reg或imm
+    end
+    always@(*)
+    begin
+        if( (reg_write_en_MEM!=1'b0) && (src_reg_en[0]!=1'b0) && (reg_dstM==reg2_srcE) && (reg_dstM!=5'b00000) )
+            reg2_sel<=2'b00;//采用aluout
+        else if( (reg_write_en_WB!=1'b0)  && (src_reg_en[0]!=1'b0) && (reg_dstW==reg2_srcE) && (reg_dstM!=5'b00000))
+            reg2_sel<=2'b01;//来自write back
+        else
+            op2_sel<=2'b10;//来自reg
     end
 endmodule
+
+//完成实现

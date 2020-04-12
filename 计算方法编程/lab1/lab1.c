@@ -8,7 +8,7 @@ float g_x(float x)
 {
     return x*x/(sqrt(x*x+9)+3);
 }
-int mian()
+int main()
 {
     float x=8;
     int i;
