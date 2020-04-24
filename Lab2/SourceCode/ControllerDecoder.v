@@ -38,7 +38,7 @@ module ControllerDecoder(
     input wire [31:0] inst,
     output wire jal,//单独确定
     output wire jalr,//单独确定
-    output wire op2_src,//单独确定
+    output wire [1:0]op2_src,//单独确定
     output reg [3:0] ALU_func,//统一确定
     output reg [2:0] br_type,//单独确定
     output wire load_npc,//单独确定
@@ -49,7 +49,10 @@ module ControllerDecoder(
     output reg [3:0] cache_write_en,//统一确定
     output wire alu_src1,//单独确定
     output wire [1:0] alu_src2,//单独确定
-    output reg [2:0] imm_type//统一确定
+    output reg [2:0] imm_type,//统一确定
+    output reg csr_read_en,//csr寄存器读使能
+    output reg [2:0]csr_type,//csr指令类型
+    output reg csr_write_en//csr寄存器写使能
     );
 
     // TODO: Complete this module
@@ -72,7 +75,8 @@ module ControllerDecoder(
     7.sw类指令地址计算
     因此只有opcode为0110011的指令不需要使用imm
     */
-    assign op2_src=(opcode==7'b0110011)?1'b0:1'b1;
+    //此处为增加csr指令，扩展op2_src，当信号为10时选择csr寄存器读出值
+    assign op2_src=(opcode==7'b0110011)?2'b00:( ( opcode==7'b1110011 )?2'b10:2'b01);
     assign load_npc=jal | jalr;//跳转并链接指令导致pc被写入寄存器
     assign jal=(opcode==7'b1101111)?1'b1:1'b0;
     assign jalr=(opcode==7'b1100111)?1'b1:1'b0;
@@ -83,6 +87,7 @@ module ControllerDecoder(
     选择信号为01表示选中指令中的reg2地址值进入alu，有三个指令需要：SLLI,SRAI,SRLI;其opcode均为0010011，func字段分别为001,101,101
     选择信号为00表示选中reg2寄存器进入alu进行计算，此时为寄存器-寄存器计算指令，此类指令的opcode为0110011（包含add,sub等）
     还有opcode为1100011的指令（BEQ类指令）。
+    新添加11的选择信号，表示从csr拓展选择
     */
     // always@(*)
     // begin
@@ -93,7 +98,7 @@ module ControllerDecoder(
     //     else
     //         alu_src2<=2'b10;
     // end
-    assign alu_src2=( (opcode==7'b0010011)&&(funct_3_bits[1:0]==2'b01) )?(2'b01):(((opcode==7'b0110011)||(opcode==7'b1100011))?2'b00:2'b10);
+    assign alu_src2=( (opcode==7'b0010011)&&(funct_3_bits[1:0]==2'b01) )?(2'b01):(((opcode==7'b0110011)||(opcode==7'b1100011))?2'b00:( (opcode==7'b1110011)?2'b11:2'b10));
     
     //确定分支类型信号
 
@@ -126,6 +131,9 @@ module ControllerDecoder(
                 cache_write_en<=4'b0000;//不写cache
                 imm_type<=`ITYPE;
                 src_reg_en<=2'b10;//使用rs1不使用rs2
+                csr_read_en <= 1'b0;
+                csr_type <= `NOCSR;
+                csr_write_en <= 1'b0;
                 case (funct_3_bits)
                     3'b000: ALU_func<=`ADD;
                     3'b001: ALU_func<=`SLL;//实际为SLLI指令，但alu方式相同
@@ -151,6 +159,9 @@ module ControllerDecoder(
                 cache_write_en<=4'b0000;
                 src_reg_en<=2'b11;//使用rs1，使用rs2
                 imm_type<=`RTYPE;//此处设置R类立即数是否有必要？
+                csr_read_en <= 1'b0;
+                csr_type <= `NOCSR;
+                csr_write_en <= 1'b0;
                 case (funct_3_bits)
                     3'b000: 
                     begin
@@ -190,8 +201,11 @@ module ControllerDecoder(
                     3'b101: load_type<=`LHU;
                     default: load_type<=`LW;//默认情况下设置为加载32bits
                 endcase
+                csr_read_en <= 1'b0;
+                csr_type <= `NOCSR;
+                csr_write_en <= 1'b0;
             end
-            7'b0010011://SW指令家族
+            7'b0100011://SW指令家族
             begin
                 ALU_func<=`ADD;
                 load_type<=`NOREGWRITE;
@@ -202,8 +216,11 @@ module ControllerDecoder(
                     3'b000: cache_write_en<=4'b0001;//SB
                     3'b001: cache_write_en<=4'b0011;//SH
                     3'b010: cache_write_en<=4'b1111;//sw
-                    default: cache_write_en<=4'b1111;//默认情况下为SW
+                    default: cache_write_en<=4'b0000;//默认情况下为SW
                 endcase
+                csr_read_en <= 1'b0;
+                csr_type <= `NOCSR;
+                csr_write_en <= 1'b0;
             end
             7'b0110111://LUI:加载u类立即数到rd
             begin
@@ -213,6 +230,9 @@ module ControllerDecoder(
                 cache_write_en<=4'b0000;
                 ALU_func<=`LUI;
                 imm_type<=`UTYPE;
+                csr_read_en <= 1'b0;
+                csr_type <= `NOCSR;
+                csr_write_en <= 1'b0;
             end
             7'b0010111://AUIPC:pc相对计算指令
             begin
@@ -222,6 +242,9 @@ module ControllerDecoder(
                 cache_write_en<=4'b0000;
                 ALU_func<=`ADD;
                 imm_type<=`UTYPE;
+                csr_read_en <= 1'b0;
+                csr_type <= `NOCSR;
+                csr_write_en <= 1'b0;
             end
             7'b1101111://JAL使用J类立即数
             begin
@@ -231,6 +254,9 @@ module ControllerDecoder(
                 cache_write_en<=4'b0000;
                 ALU_func<=`ADD;
                 imm_type<=`JTYPE;
+                csr_read_en <= 1'b0;
+                csr_type <= `NOCSR;
+                csr_write_en <= 1'b0;
             end
             7'b1100111://JALR使用I类立即数
             begin
@@ -239,7 +265,10 @@ module ControllerDecoder(
                 reg_write_en<=1'b1;//需要写入寄存器
                 ALU_func<=`ADD;
                 cache_write_en<=4'b0000;
-                imm_type<=`ITYPE; 
+                imm_type<=`ITYPE;
+                csr_read_en <= 1'b0;
+                csr_type <= `NOCSR;
+                csr_write_en <= 1'b0;
             end
             7'b1100011://branch指令
             begin
@@ -249,6 +278,89 @@ module ControllerDecoder(
                 ALU_func<=`ADD;//不需要alu参与，此处暂时赋为add指令
                 imm_type<=`BTYPE;
                 cache_write_en<=4'b0000;
+                csr_read_en <= 1'b0;
+                csr_type <= `NOCSR;
+                csr_write_en <= 1'b0;
+            end
+            7'b1110011://csr指令族
+            begin
+                load_type<=`LW;
+                reg_write_en<=1'b1;
+                ALU_func<=`CSR;
+                cache_write_en<=4'b0000;
+                case (funct_3_bits)
+                    3'b001://CSRRW指令
+                    begin
+                        if (inst[19:15] == 5'h0) src_reg_en <= 2'b00;
+                        else src_reg_en <= 2'b10;//rs1被使用到
+                        if (inst[11:7] == 5'h0) csr_read_en <= 1'b0;
+                        else csr_read_en <= 1'b1;
+                        csr_type <= `CSRRW;
+                        csr_write_en <= 1'b1;
+                        imm_type <= `RTYPE;
+                    end
+                    3'b010://CSRRS指令
+                    begin
+                        if (inst[19:15] == 5'h0) begin src_reg_en <= 2'b00;csr_write_en <= 1'b1; end
+                        //掩码为全零，此时不写csr寄存器，同时也不作为操作数
+                        else begin src_reg_en <= 2'b10;csr_write_en <= 1'b1; end
+                        if (inst[11:7] == 5'h0) csr_read_en <= 1'b0;
+                        //写入0号寄存器无效
+                        else csr_read_en <= 1'b1;
+                        csr_type <= `CSRRS;
+                        csr_write_en <= 1'b1;
+                        imm_type <= `RTYPE;
+                    end
+                    3'b011://CSRRC指令
+                    begin
+                    //同上述csrrs指令，除置位规则改变
+                        if (inst[19:15] == 5'h0) begin src_reg_en <= 2'b00;csr_write_en <= 1'b1; end
+                        else begin src_reg_en <= 2'b10;csr_write_en <= 1'b1; end
+                        if (inst[11:7] == 5'h0) csr_read_en <= 1'b0;
+                        else csr_read_en <= 1'b1;
+                        csr_type <= `CSRRC;
+                        imm_type <= `RTYPE;
+                    end
+                    3'b101://CSRRWI
+                    begin
+                    //立即数型CSRRW指令
+                        if (inst[19:15] == 5'h0) src_reg_en <= 2'b00;
+                        else src_reg_en <= 2'b10;
+                        if (inst[11:7] == 5'h0) csr_read_en <= 1'b0;
+                        else csr_read_en <= 1'b1;
+                        csr_type <= `CSRRWI;
+                        csr_write_en <= 1'b1;
+                        imm_type <= `CSRITYPE;
+                    end
+                    3'b110://CSRRSI
+                    begin
+                    //控制信号同上
+                        if (inst[19:15] == 5'h0) begin src_reg_en <= 2'b00;csr_write_en <= 1'b1; end
+                        else begin src_reg_en <= 2'b10;csr_write_en <= 1'b1; end
+                        if (inst[11:7] == 5'h0) csr_read_en <= 1'b0;
+                        else csr_read_en <= 1'b1;
+                        csr_type <= `CSRRSI;
+                        csr_write_en <= 1'b1;
+                        imm_type <= `CSRITYPE;
+                    end
+                    3'b111://CSRRCI
+                    begin
+                        if (inst[19:15] == 5'h0) begin src_reg_en <= 2'b00;csr_write_en <= 1'b1; end
+                        else begin src_reg_en <= 2'b10;csr_write_en <= 1'b1; end
+                        if (inst[11:7] == 5'h0) csr_read_en <= 1'b0;
+                        else csr_read_en <= 1'b1;
+                        csr_type <= `CSRRCI;
+                        imm_type <= `CSRITYPE;
+                    end
+                    default: 
+                    begin
+                        src_reg_en<=2'bxx;
+                        csr_read_en<=1'bx;
+                        csr_write_en<=1'bx;
+                        csr_type<=`NOCSR;
+                        imm_type<=`RTYPE;
+                    end
+                endcase
             end
             default: 
             begin

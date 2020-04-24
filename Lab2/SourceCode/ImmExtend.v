@@ -38,6 +38,7 @@ module ImmExtend(
             `BTYPE: imm<={ { 20{inst[31]} } ,inst[7], inst[30:25], inst[11:8], 1'b0};
             `UTYPE: imm<={ inst[31:12], 12'b0 };
             `JTYPE: imm<={ {12{inst[31]}}, inst[19:12], inst[20], inst[30:21], 1'b0 };
+            `CSRITYPE: imm <= {{27{1'b0}}, inst[19:15]};
             default: imm<=32'hxxxxxxxx;
         endcase
     end

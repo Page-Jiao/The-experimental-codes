@@ -60,6 +60,9 @@ module Ctrl_EX(
     input wire [3:0] cache_write_en_ID,
     input wire alu_src1_ID,
     input wire [1:0] alu_src2_ID,
+    input wire csr_write_en_ID,
+    input wire csr_read_en_ID,
+    input wire [2:0] csr_type_ID,
     output reg jalr_EX,
     output reg [3:0] ALU_func_EX,
     output reg [2:0] br_type_EX,
@@ -70,7 +73,10 @@ module Ctrl_EX(
     output reg reg_write_en_EX,
     output reg [3:0] cache_write_en_EX,
     output reg alu_src1_EX,
-    output reg [1:0] alu_src2_EX
+    output reg [1:0] alu_src2_EX,
+    output reg csr_write_en_EX,
+    output reg csr_read_en_EX,
+    output reg [2:0] csr_type_EX
     );
 
     initial 

@@ -85,7 +85,7 @@ module HarzardUnit(
     begin
         if( (reg_write_en_MEM!=1'b0) && (src_reg_en[1]!=1'b0) && (reg_dstM==reg1_srcE) && (reg_dstM!=5'b00000) )
             op1_sel<=2'b00;//采用aluout
-        else if( (reg_write_en_WB!=1'b0)  && (src_reg_en[1]!=1'b0) && (reg_dstW==reg1_srcE) && (reg_dstM!=5'b00000))
+        else if( (reg_write_en_WB!=1'b0)  && (src_reg_en[1]!=1'b0) && (reg_dstW==reg1_srcE) && (reg_dstW!=5'b00000))
             op1_sel<=2'b01;//来自write back
         else if(alu_src1==1'b1)//来自pc
             op1_sel<=2'b10;
@@ -97,7 +97,7 @@ module HarzardUnit(
     begin
         if( (reg_write_en_MEM!=1'b0) && (src_reg_en[0]!=1'b0) && (reg_dstM==reg2_srcE) && (reg_dstM!=5'b00000) )
             op2_sel<=2'b00;//采用aluout
-        else if( (reg_write_en_WB!=1'b0)  && (src_reg_en[0]!=1'b0) && (reg_dstW==reg2_srcE) && (reg_dstM!=5'b00000))
+        else if( (reg_write_en_WB!=1'b0)  && (src_reg_en[0]!=1'b0) && (reg_dstW==reg2_srcE) && (reg_dstW!=5'b00000))
             op2_sel<=2'b01;//来自write back
         else if(alu_src2==2'b01)//来自地址
             op2_sel<=2'b10;
@@ -108,10 +108,10 @@ module HarzardUnit(
     begin
         if( (reg_write_en_MEM!=1'b0) && (src_reg_en[0]!=1'b0) && (reg_dstM==reg2_srcE) && (reg_dstM!=5'b00000) )
             reg2_sel<=2'b00;//采用aluout
-        else if( (reg_write_en_WB!=1'b0)  && (src_reg_en[0]!=1'b0) && (reg_dstW==reg2_srcE) && (reg_dstM!=5'b00000))
+        else if( (reg_write_en_WB!=1'b0)  && (src_reg_en[0]!=1'b0) && (reg_dstW==reg2_srcE) && (reg_dstW!=5'b00000))
             reg2_sel<=2'b01;//来自write back
         else
-            op2_sel<=2'b10;//来自reg
+            reg2_sel<=2'b10;//来自reg
     end
 endmodule
 

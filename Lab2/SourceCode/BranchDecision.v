@@ -58,7 +58,7 @@ module BranchDecision(
                 else
                     br<=1'b0;
             `BGE: //大于跳转
-                if(sigend_reg1>sigend_reg2)
+                if(sigend_reg1>=sigend_reg2)
                     br<=1'b1;
                 else
                     br<=1'b0;

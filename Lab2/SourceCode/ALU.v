@@ -45,6 +45,7 @@ module ALU(
             `SRL:  ALU_out<=op1>>(op2[4:0]);//逻辑右移指令，同上
             `SRA:  ALU_out<=sigend_op1 >>> (op2[4:0]);//算数右移指令（使用算数右移算符），需对规定了有符号拓展的数进行
             `LUI:  ALU_out<={op2[31:12],12'b0};//构造u类立即数
+            `CSR:  ALU_out<=op2;//直接输出op2，为csr指令准备
             default:  ALU_out<=32'hxxxxxxxx;
         endcase
     end
