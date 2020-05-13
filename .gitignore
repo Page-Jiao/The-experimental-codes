@@ -1,9 +1,9 @@
 *.pth
 *.ipynb
 *DS_Store
-/ipynb_checkpoints
-/临时
-/vscode
+.ipynb_checkpoints/
+临时/
+.vscode/
 
 
 
