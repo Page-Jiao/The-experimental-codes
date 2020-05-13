@@ -1,5 +1,4 @@
 *.pth
-*.ipynb
 *DS_Store
 .ipynb_checkpoints/
 临时/
