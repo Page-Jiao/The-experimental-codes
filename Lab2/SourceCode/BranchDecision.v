@@ -62,6 +62,7 @@ module BranchDecision(
                     br<=1'b1;
                 else
                     br<=1'b0;
+            `BGEU: br = (reg1 >= reg2)?1'b1:1'b0;
             default: br<=1'b0;
         endcase
     end

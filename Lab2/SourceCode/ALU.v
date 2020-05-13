@@ -28,7 +28,7 @@ module ALU(
     input wire [3:0] ALU_func,
     output reg [31:0] ALU_out
     );
-    wire signed [31:0] sigend_op1 = $signed(op1);//确定有符号拓展参与运算
+    wire signed [31:0] signed_op1 = $signed(op1);//确定有符号拓展参与运算
     wire signed [31:0] signed_op2 = $signed(op2);
     // TODO: Complete this module
     always@(*)
@@ -40,10 +40,10 @@ module ALU(
             `SUB:  ALU_out<=op1 - op2;
             `XOR:  ALU_out<=op1 ^ op2;
             `OR:  ALU_out<=op1 | op2;
-            `SLT:  ALU_out<=sigend_op1 < signed_op2 ? 32'd1:32'd0;//同上，带符号比较
+            `SLT:  ALU_out<=signed_op1 < signed_op2 ? 32'd1:32'd0;//同上，带符号比较
             `SLL:  ALU_out<=op1<<(op2[4:0]);//逻辑左移指令，左移rs2底五位
             `SRL:  ALU_out<=op1>>(op2[4:0]);//逻辑右移指令，同上
-            `SRA:  ALU_out<=sigend_op1 >>> (op2[4:0]);//算数右移指令（使用算数右移算符），需对规定了有符号拓展的数进行
+            `SRA:  ALU_out<=signed_op1 >>> (op2[4:0]);//算数右移指令（使用算数右移算符），需对规定了有符号拓展的数进行
             `LUI:  ALU_out<={op2[31:12],12'b0};//构造u类立即数
             `CSR:  ALU_out<=op2;//直接输出op2，为csr指令准备
             default:  ALU_out<=32'hxxxxxxxx;

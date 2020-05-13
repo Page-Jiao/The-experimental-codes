@@ -38,7 +38,7 @@ module ControllerDecoder(
     input wire [31:0] inst,
     output wire jal,//单独确定
     output wire jalr,//单独确定
-    output wire [1:0]op2_src,//单独确定
+    output wire op2_src,//单独确定
     output reg [3:0] ALU_func,//统一确定
     output reg [2:0] br_type,//单独确定
     output wire load_npc,//单独确定
@@ -76,7 +76,8 @@ module ControllerDecoder(
     因此只有opcode为0110011的指令不需要使用imm
     */
     //此处为增加csr指令，扩展op2_src，当信号为10时选择csr寄存器读出值
-    assign op2_src=(opcode==7'b0110011)?2'b00:( ( opcode==7'b1110011 )?2'b10:2'b01);
+    //assign op2_src=(opcode==7'b0110011)?2'b00:( ( opcode==7'b1110011 )?2'b10:2'b01);
+    assign op2_src=(opcode==7'b0110011)?1'b0:1'b1;
     assign load_npc=jal | jalr;//跳转并链接指令导致pc被写入寄存器
     assign jal=(opcode==7'b1101111)?1'b1:1'b0;
     assign jalr=(opcode==7'b1100111)?1'b1:1'b0;
@@ -370,6 +371,9 @@ module ControllerDecoder(
                 cache_write_en<=4'b0000;
                 ALU_func<=`ADD;
                 imm_type<=`ITYPE;
+                csr_read_en <= 1'b0;
+                csr_type <= `NOCSR;
+                csr_write_en <= 1'b0;
             end
         endcase
     end

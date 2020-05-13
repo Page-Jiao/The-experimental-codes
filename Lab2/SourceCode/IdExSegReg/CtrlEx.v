@@ -110,6 +110,9 @@ module Ctrl_EX(
                 cache_write_en_EX <= 3'h0;
                 alu_src1_EX <= 0;
                 alu_src2_EX <= 2'b0;
+                csr_write_en_EX <= 1'b0;
+                csr_read_en_EX <= 1'b0;
+                csr_type_EX <= 3'b000;
             end
             else
             begin
@@ -124,6 +127,9 @@ module Ctrl_EX(
                 cache_write_en_EX <= cache_write_en_ID;
                 alu_src1_EX <= alu_src1_ID;
                 alu_src2_EX <= alu_src2_ID;
+                csr_write_en_EX <= csr_write_en_ID;
+                csr_read_en_EX <= csr_read_en_ID;
+                csr_type_EX <= csr_type_ID;
             end
         end
     

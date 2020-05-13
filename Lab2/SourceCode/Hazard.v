@@ -99,7 +99,7 @@ module HarzardUnit(
             op2_sel<=2'b00;//采用aluout
         else if( (reg_write_en_WB!=1'b0)  && (src_reg_en[0]!=1'b0) && (reg_dstW==reg2_srcE) && (reg_dstW!=5'b00000))
             op2_sel<=2'b01;//来自write back
-        else if(alu_src2==2'b01)//来自地址
+        else if((alu_src2==2'b01))//来自地址
             op2_sel<=2'b10;
         else
             op2_sel<=2'b11;//来自reg或imm
