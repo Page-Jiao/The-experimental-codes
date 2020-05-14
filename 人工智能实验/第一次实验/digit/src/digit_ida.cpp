@@ -2,7 +2,7 @@
  * @Author: Page-Jiao
  * @Date: 2020-05-12 21:59:14
  * @LastEditors: Page-Jiao
- * @LastEditTime: 2020-05-12 22:19:29
+ * @LastEditTime: 2020-05-13 17:49:16
  * @Description: file content
  * @FilePath: \src\digit_ida.cpp
  */
@@ -15,6 +15,7 @@
 #include <map>
 #include <queue>
 #include <time.h>
+#include <stack>
 
 using namespace std;
 
@@ -45,8 +46,8 @@ struct NODE
 NODE End;
 NODE Start;
 NODE nextNode;
-priority_queue<NODE> list;
 map<string, bool> state;
+stack<NODE> Openlist;
 
 unsigned char final_loc[N*N][2] = {
     0, 0,
@@ -359,8 +360,7 @@ float a_star_ida(float g, float bound)
     
     NODE *minNode = new NODE();
     float dMin = 99999;
-    *minNode = list.top();
-    list.pop();
+    *minNode = Openlist.top();
     float f;
     f = g + calculate_h(minNode->map);
     if (f > bound)
@@ -389,15 +389,16 @@ float a_star_ida(float g, float bound)
             nextNode.parent = minNode;
             nextNode.zeroNum = 0;
             nextNode.direct = i;
-            if(node_map_equal(nextNode, End))
-            {
-                nextNode.g++;
-                return;
-            }
             state[nextStr] = true;
             nextNode.g++;
             nextNode.h = calculate_h(nextNode.map);
-            list.push(nextNode);
+            Openlist.push(nextNode);
+            dLim = a_star_ida(g + 1, bound);
+            if (dLim == -1)
+                return -1;
+            if (dLim < dMin)
+                dMin = dLim;
+            Openlist.pop();
         }
     }
 
@@ -416,15 +417,16 @@ float a_star_ida(float g, float bound)
             nextNode.parent = minNode;
             nextNode.zeroNum = 1;
             nextNode.direct = i;
-            if(node_map_equal(nextNode, End))
-            {
-                nextNode.g++;
-                return;
-            }
             state[nextStr] = true;
             nextNode.g++;
             nextNode.h = calculate_h(nextNode.map);
-            list.push(nextNode);
+            Openlist.push(nextNode);
+            dLim = a_star_ida(g + 1, bound);
+            if (dLim == -1)
+                return -1;
+            if (dLim < dMin)
+                dMin = dLim;
+            Openlist.pop();
         }
     }
 
@@ -440,18 +442,19 @@ float a_star_ida(float g, float bound)
             nextNode.parent = minNode;
             nextNode.zeroNum = 2;
             nextNode.direct = sevenDirect;
-            if(node_map_equal(nextNode, End))
-            {
-                nextNode.g++;
-                return;
-            }
             state[nextStr] = true;
             nextNode.g++;
             nextNode.h = calculate_h(nextNode.map);
-            list.push(nextNode);
+            Openlist.push(nextNode);
+            dLim = a_star_ida(g + 1, bound);
+            if (dLim == -1)
+                return -1;
+            if (dLim < dMin)
+                dMin = dLim;
+            Openlist.pop();
         }
     }
-    
+    return dMin;
 }
 
 void ida_star(string num)
@@ -459,7 +462,7 @@ void ida_star(string num)
     init_end_map(&End);
     init_start_map(&Start, num);
     state[map_to_string(Start.map)] = true;
-    list.push(Start);
+    Openlist.push(Start);
 
     float bound;
     bound = calculate_h(Start.map);
@@ -483,14 +486,15 @@ void ida_star(string num)
 int main(int argc, char *argv[])
 {
     string num;
-    num = argv[1][0];
+    num = "..\\input\\";
+    num += argv[1][0];
     clock_t clkStart, clkEnd;
     int pathLen = 0;
     string path;
     init_end_map(&End);
     init_start_map(&Start, num);
     clkStart = clock();
-    a_star_ida(num);
+    ida_star(num);
     clkEnd = clock();
     show_path(&nextNode, &pathLen, path);
     cout << endl << "Path length = " << pathLen << endl;

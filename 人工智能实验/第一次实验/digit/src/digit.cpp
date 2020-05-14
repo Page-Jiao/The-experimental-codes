@@ -442,7 +442,8 @@ void a_star(string num)
 int main(int argc, char *argv[])
 {
     string num;
-    num = argv[1][0];
+    num = "..\\input\\";
+    num += argv[1][0];
     clock_t clkStart, clkEnd;
     int pathLen = 0;
     string path;
@@ -454,7 +455,11 @@ int main(int argc, char *argv[])
     show_path(&nextNode, &pathLen, path);
     cout << endl << "Path length = " << pathLen << endl;
     ofstream out;
-    out.open("path.txt");
+    string outfile;
+    outfile = "..\\output\\";
+    outfile += argv[1][0];
+    outfile.append(".txt");
+    out.open(outfile);
     out << path << endl;
     out.close();
     double endtime = (double)(clkEnd - clkStart) / CLOCKS_PER_SEC;
