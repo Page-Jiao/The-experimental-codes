@@ -96,9 +96,7 @@ bool IsValid(int i,int j, int t)
 {
     int k;
     for(k=0;k<9;k++){
-        if(j!=k && t==p[i][k])
-            return false;
-        if(i!=k && t==p[k][j])
+        if(j!=k && t==p[i][k] || i!=k && t==p[k][j])
             return false;
     }
 
@@ -107,9 +105,7 @@ bool IsValid(int i,int j, int t)
     int k1,k2;
     for(k1=iGrid;k1<iGrid+3;k1++){
         for(k2=jGrid;k2<jGrid+3;k2++){
-            if(k2==j && k1==i)
-                continue;
-            if(t==p[k1][k2])
+            if(t==p[k1][k2] && (k1 != iGrid || k2 != jGrid))
                 return false;
         }
     }
@@ -117,13 +113,8 @@ bool IsValid(int i,int j, int t)
     {
         for(k=0;k<9;k++)
         {
-            if(k == i)
-                continue;
-            else
-            {
-                if(t == p[k][k])
-                    return false;
-            }
+            if(t == p[k][k] && i != k)
+                return false;
             
         }
     }
@@ -131,14 +122,8 @@ bool IsValid(int i,int j, int t)
     {
         for(k=0;k<9;k++)
         {
-            if(k == i)
-                continue;
-            else
-            {
-                if(t == p[k][8-k])
-                    return false;
-            }
-            
+            if(t == p[k][8-k] && i != k)
+                return false;
         }
     }
     return true;
@@ -172,9 +157,7 @@ void build_queue()
     {
         for(j = 0; j < 9; j++)
         {
-            if(p[i][j] != 0)
-                continue;
-            else
+            if(p[i][j] == 0)
             {
                 temp.x = i;
                 temp.y = j;
@@ -182,7 +165,6 @@ void build_queue()
                 compute_remain_value(&temp);
                 list.push_back(temp);
             }
-            
         }
     }
     sort(list.begin(),list.end(),cmp);
@@ -196,22 +178,11 @@ void refresh_remain_value_minus()
         temp = list[i];
         for(int j=1;j<=9;j++)
         {
-            if(!temp.remain_value[j])
+            if(temp.remain_value[j] && !IsValid(temp.x,temp.y,j))
             {
-                continue;// 原来就是false，这次也是false
+                list[i].remain_value[j] = false;
+                list[i].remain_value_num -= 1;
             }
-            else
-            {
-                if(IsValid(temp.x,temp.y,j))
-                    continue;
-                else
-                {
-                    list[i].remain_value[j] = false;
-                    list[i].remain_value_num -= 1;
-                }
-                
-            }
-            
         }
     }
 }
@@ -223,6 +194,7 @@ void refresh_remain_value_all()
     for(int i=0;i<list.size();i++)
     {
         temp = list[i];
+        num = 0;
         for(int j=1;j<=9;j++)
         {
             if(IsValid(temp.x,temp.y,j))
@@ -240,30 +212,65 @@ void refresh_remain_value_all()
     }
 }
 
+void select_min_domain(position &d)
+{
+    int min_value_num = 10;
+    auto min = list.begin();
+    for (auto it = list.begin(); it != list.end(); it++)
+    {
+        if((*it).remain_value_num <= min_value_num)
+        {
+            min_value_num = (*it).remain_value_num;
+            min = it;
+        }
+    }
+    d.x = (*min).x;
+    d.y = (*min).y;
+    d.remain_value_num = (*min).remain_value_num;
+    d.remain_value = (*min).remain_value;
+    list.erase(min);
+}
+
+void select_max_domain(position &d)
+{
+    int max_value_num = 0;
+    auto max = list.begin();
+    for (auto it = list.begin(); it != list.end(); it++)
+    {
+        if((*it).remain_value_num > max_value_num)
+        {
+            max_value_num = (*it).remain_value_num;
+            max = it;
+        }
+    }
+    d.x = (*max).x;
+    d.x = (*max).y;
+    d.remain_value_num = (*max).remain_value_num;
+    d.remain_value = (*max).remain_value;
+    // remain_values.erase(max);
+}
+
 bool R_Sudoku()
 {
     int i;
     sum +=1;
     position temp;
+    position max;
     if(list.size()==0)
         return true;
-    temp = list.back();
-    list.pop_back();
+    select_min_domain(temp);
     for(i=1;i<=9;i++)
     {
-        if(!temp.remain_value[i])
-            continue;
-        else
+        if(temp.remain_value[i])
         {
             p[temp.x][temp.y] = i;
             refresh_remain_value_minus();
-            sort(list.begin(),list.end(),cmp);//刷新剩余值表，再排序
-            if(list[0].remain_value_num == 0)
+            select_max_domain(max);
+            if(max.remain_value_num == 0)
             {
                 p[temp.x][temp.y] = 0;
                 list.push_back(temp);
                 refresh_remain_value_all();
-                sort(list.begin(),list.end(),cmp);
                 return false;
             }
             if(R_Sudoku())
@@ -272,14 +279,12 @@ bool R_Sudoku()
             }
             p[temp.x][temp.y] = 0;
             refresh_remain_value_all();
-            sort(list.begin(),list.end(),cmp);
         }
         
     }
     p[temp.x][temp.y] = 0;
     list.push_back(temp);
     refresh_remain_value_all();
-    sort(list.begin(),list.end(),cmp);
     return false;
 }
 
