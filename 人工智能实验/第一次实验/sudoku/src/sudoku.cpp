@@ -54,7 +54,7 @@ void show_sudoku_puzzle(Sudoku puzzle)
     }
 }
 
-bool IsValid(int i,int j)
+bool IsValid(int i,int j)//判断当前位置是否合法
 {
     int  t=p[i][j];
     int k;
@@ -107,7 +107,7 @@ bool IsValid(int i,int j)
     return true;
 }
 
-bool R_Sudoku()
+bool R_Sudoku()// 循环回溯求解问题
 {
     sum +=1;
     int i,j,k;

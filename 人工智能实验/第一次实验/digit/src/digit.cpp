@@ -11,6 +11,7 @@
 using namespace std;
 
 #define N 5
+#define H_NUM 2
 
 struct NODE
 {
@@ -102,7 +103,7 @@ void print_single_path(NODE *node, string &path)
         loc = (d == 1) ? (loc + 5) : (d == 2) ? (loc - 5) : (d == 3) ? (loc + 1) : (loc - 1);
         int number = node->map[loc];
         printf("(%d, %c)", number, mapDirect[d]);
-        path = path + "(" + to_string(number) + ", " + mapDirect[node->direct] + ");";
+        path = path + "("+to_string(number) + ", " + mapDirect[node->direct] + ");";
     }
 }
 
@@ -121,15 +122,28 @@ float calculate_h(unsigned char map[N * N])
 {
     int sum = 0;
     int x, y;
+    int seven = 0;
     for(int i = 0; i < N; i++)
     {
         for(int j = 0; j < N; j++)
         {
-            if(map[i * N + j] == 0)
-                continue;
-            x = final_loc[map[i *N +j]][0];
-            y = final_loc[map[i *N +j]][1];
-            sum += abs(x - i) + abs(y - j);
+            if(map[i * N + j] != 0)
+            {
+                if(map[i * N + j] == 7 && H_NUM == 1)// 选择使用那种启发式函数
+                {
+                    seven += 1;
+                    if(seven == 1)
+                    {
+                        x = final_loc[map[i *N +j]][0];
+                        y = final_loc[map[i *N +j]][1];
+                        sum += abs(x - i) + abs(y - j);
+                    }
+                }
+                x = final_loc[map[i *N +j]][0];
+                y = final_loc[map[i *N +j]][1];
+                sum += abs(x - i) + abs(y - j);
+                
+            }
         }
     }
     return sum;

@@ -33,7 +33,7 @@ bool cmp(position x,position y) ///cmp函数传参的类型不是vector<int>型�
     return x.remain_value_num>y.remain_value_num;
 }
 
-void init_origin_sudoku(string name)
+void init_origin_sudoku(string name)// 读取文件建立初始的状态
 {
     ifstream inFile;
     name.append(".txt");
@@ -71,7 +71,7 @@ void write_result(string name)
     out.close();
 }
 
-void show_sudoku_puzzle(Sudoku puzzle)
+void show_sudoku_puzzle(Sudoku puzzle)// 调试采用的输出函数
 {
     printf("Value of sudoku puzzle:\n");
     for (int i=0; i<9; i++)
@@ -129,7 +129,7 @@ bool IsValid(int i,int j, int t)
     return true;
 }
 
-void compute_remain_value(position * m)
+void compute_remain_value(position * m)// 计算当前节点的剩余值
 {
     int i;
     int num = 0;
@@ -149,7 +149,7 @@ void compute_remain_value(position * m)
     }
     m->remain_value_num = num;
 }
-void build_queue()
+void build_queue()// 建立初始的剩余值列表
 {
     int i,j;
     position temp;
@@ -170,7 +170,7 @@ void build_queue()
     sort(list.begin(),list.end(),cmp);
 }
 
-void refresh_remain_value_minus()
+void refresh_remain_value_minus() // 以减量的形式刷新剩余值列表
 {
     position temp;
     for(int i=0;i<list.size();i++)
@@ -187,7 +187,7 @@ void refresh_remain_value_minus()
     }
 }
 
-void refresh_remain_value_all()
+void refresh_remain_value_all() // 考虑刷新全部剩余值
 {
     position temp;
     int num = 0;
@@ -212,7 +212,7 @@ void refresh_remain_value_all()
     }
 }
 
-void select_min_domain(position &d)
+void select_min_domain(position &d) // 选择列表中拥有最小剩余值个数的项
 {
     int min_value_num = 10;
     auto min = list.begin();
@@ -231,7 +231,7 @@ void select_min_domain(position &d)
     list.erase(min);
 }
 
-void select_min_domain_without_delete(position &d)
+void select_min_domain_without_delete(position &d) // 选择列表中拥有最小剩余值个数的项但不删除最小项
 {
     int min_value_num = 10;
     auto min = list.begin();
