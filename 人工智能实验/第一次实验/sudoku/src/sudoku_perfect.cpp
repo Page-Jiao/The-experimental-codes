@@ -231,23 +231,22 @@ void select_min_domain(position &d)
     list.erase(min);
 }
 
-void select_max_domain(position &d)
+void select_min_domain_without_delete(position &d)
 {
-    int max_value_num = 0;
-    auto max = list.begin();
+    int min_value_num = 10;
+    auto min = list.begin();
     for (auto it = list.begin(); it != list.end(); it++)
     {
-        if((*it).remain_value_num > max_value_num)
+        if((*it).remain_value_num <= min_value_num)
         {
-            max_value_num = (*it).remain_value_num;
-            max = it;
+            min_value_num = (*it).remain_value_num;
+            min = it;
         }
     }
-    d.x = (*max).x;
-    d.x = (*max).y;
-    d.remain_value_num = (*max).remain_value_num;
-    d.remain_value = (*max).remain_value;
-    // remain_values.erase(max);
+    d.x = (*min).x;
+    d.y = (*min).y;
+    d.remain_value_num = (*min).remain_value_num;
+    d.remain_value = (*min).remain_value;
 }
 
 bool R_Sudoku()
@@ -265,13 +264,13 @@ bool R_Sudoku()
         {
             p[temp.x][temp.y] = i;
             refresh_remain_value_minus();
-            select_max_domain(max);
+            select_min_domain_without_delete(max);
             if(max.remain_value_num == 0)
             {
                 p[temp.x][temp.y] = 0;
-                list.push_back(temp);
+                //list.push_back(temp);
                 refresh_remain_value_all();
-                return false;
+                continue;
             }
             if(R_Sudoku())
             {

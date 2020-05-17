@@ -1,11 +1,3 @@
-/*
- * @Author: Page-Jiao
- * @Date: 2020-05-12 21:59:14
- * @LastEditors: Page-Jiao
- * @LastEditTime: 2020-05-13 17:49:16
- * @Description: file content
- * @FilePath: \src\digit_ida.cpp
- */
 #include <stdlib.h>
 #include <iostream>
 #include <fstream>
@@ -14,13 +6,14 @@
 #include <vector>
 #include <map>
 #include <queue>
-#include <time.h>
 #include <stack>
+#include <time.h>
 
 using namespace std;
 
 #define N 5
-#define MAX_BOUND 10000000
+#define MAX_BOUND 1000
+#define H_NUM 1
 
 struct NODE
 {
@@ -30,7 +23,7 @@ struct NODE
     unsigned char     zeros[2];           // 要移动的0点的坐标
     NODE*             parent = NULL;      // 父节点
     unsigned char     direct;
-    unsigned char     zeroNum;//当前移动的0点
+    unsigned char     zeroNum;
 
     float f() const
     {
@@ -41,43 +34,69 @@ struct NODE
     {
         return g + h > x.g + x.h;
     }
+
+    // bool operator == (const NODE &rhs);
+
+    //  bool operator != (const NODE &rhs);
 };
+
+
+// bool NODE::operator == (const NODE &rhs)
+
+// {
+
+//     return map[N * N] == rhs.map[N * N];
+
+// }
+
+// bool NODE::operator != (const NODE &rhs)
+
+// {
+//     return map[N * N] != rhs.map[N * N];
+//     // return uc2str(map) != uc2str(rhs.map);
+
+// }
 
 NODE End;
 NODE Start;
-NODE nextNode;
-map<string, bool> state;
-stack<NODE> Openlist;
-
-unsigned char final_loc[N*N][2] = {
-    0, 0,
-    0, 0,//1
-    0, 1,//2
-    0, 2,//3
-    0, 3,//4
-    0, 4,//5
-    2, 0,//6
-    1, 0,//7
-    1, 2,//8
-    1, 3,//9
-    1, 4,//10
-    2, 2,//11
-    2, 3,//12
-    2, 4,//13
-    3, 0,//14
-    3, 1,//15
-    3, 2,//16
-    3, 3,//17
-    3, 4,//18
-    4, 0,//19
-    4, 1,//20
-    4, 2,//21
-    4, 3,//22
-    4, 4,
-    4, 4
+string path;
+int pathLen = 0;
+float ids_dfs(NODE head, map<string, bool> &mapDup, float g, float bound);
+/*
+    00 01 02 03 04 
+    05 06 07 08 09
+    10 11 12 13 14 
+    15 16 17 18 19 
+    20 21 07 07 00
+*/
+unsigned char EndLoc[25][2] = {
+    {4, 3}, {0, 0}, {0, 1}, {0, 2}, {0, 3},
+    {0, 4}, {2, 0}, {1, 0}, {1, 2}, {1, 3}, 
+    {1, 4}, {2, 2}, {2, 3}, {2, 4}, {3, 0},
+    {3, 1}, {3, 2}, {3, 3}, {3, 4}, {4, 0},
+    {4, 1}, {4, 2}, {2, 1}, {3, 2}, {4, 4}
+};
+unsigned char hMap[N * N] =
+{
+    23,  0,  1,  2,  3,
+    4,  10,  5,  7,  8,
+    9,  12,  13, 14, 15,
+    16, 17,  18, 19, 20,
+    21, 22,  0,  0,  0
 };
 
-string map_to_string(unsigned char map[N * N])
+void split(const string& s, vector<int>& sv, const char flag = ' ') {//？？？
+    sv.clear();
+    istringstream iss(s);
+    string temp;
+
+    while (getline(iss, temp, flag)) {
+        sv.push_back(stoi(temp));
+    }
+    return;
+}
+
+string uc2str(unsigned char map[N * N])//map变string
 {
     string str(N * N, '\0');
     for (int i = 0; i < N * N; i++)
@@ -93,6 +112,22 @@ bool node_map_equal(NODE nodeA, NODE nodeB)
             return false;
     }
     return true;
+}
+
+void show_node(NODE *node)
+{
+    printf("Digital map of node:\n");
+    for (int i=0; i<5; i++)
+    {
+        printf("%-4d", node->map[i*N+0]);
+        printf("%-4d", node->map[i*N+1]);
+        printf("%-4d", node->map[i*N+2]);
+        printf("%-4d", node->map[i*N+3]);
+        printf("%-4d\n", node->map[i*N+4]);
+    }
+    printf("Direct of node: %d\n", node->direct);
+    printf("Zero loc of node: [%d], [%d]\n", node->zeros[0], node->zeros[1]);
+    printf("G, H, F of node: %.1f, %.1f, %.1f\n", node->g, node->h, node->f());
 }
 
 void print_single_path(NODE *node, string &path)
@@ -113,23 +148,33 @@ void print_single_path(NODE *node, string &path)
         unsigned char d = node->direct;
         loc = (d == 1) ? (loc + 5) : (d == 2) ? (loc - 5) : (d == 3) ? (loc + 1) : (loc - 1);
         int number = node->map[loc];
+        assert(number != 7);
         printf("(%d, %c)", number, mapDirect[d]);
         path = path + "(" + to_string(number) + ", " + mapDirect[node->direct] + ");";
     }
 }
 
-void show_path(NODE *node, int *pathLen, string &path)
+void print_path(NODE *node, int *pathLen, string &path)
 {
     NODE *p = node->parent;
     if (p->parent != NULL)
     {
-        show_path(p, pathLen, path);
+        print_path(p, pathLen, path);
     }
+    // show_node(node);
     print_single_path(node, path);
     *pathLen += 1;
 }
 
-float calculate_h(unsigned char map[N * N])
+void save_result(string path)
+{
+    ofstream out;
+    out.open("..\\output\\path.txt");
+    out << path << endl;
+    out.close();
+}
+
+float calculate_h(unsigned char map[N * N])//实现估计函数一样，表示不一样
 {
     int sum = 0;
     int x, y;
@@ -139,8 +184,27 @@ float calculate_h(unsigned char map[N * N])
         {
             if(map[i * N + j] == 0)
                 continue;
-            x = final_loc[map[i *N +j]][0];
-            y = final_loc[map[i *N +j]][1];
+            x = hMap[map[i * N + j]] / N;
+            y = hMap[map[i * N + j]] % N;
+            sum += abs(x - i) + abs(y - j);
+        }
+    }
+    return sum;
+}
+
+float calculate_h_2(unsigned char map[N * N])
+{
+    int sum = 0;
+    int x, y;
+    for(int i = 0; i < N; i++)
+    {
+        for(int j = 0; j < N; j++)
+        {
+            unsigned char num = map[i * N + j];
+            if(num == 0 || num == 7)
+                continue;
+            x = EndLoc[num][0];
+            y = EndLoc[num][1];
             sum += abs(x - i) + abs(y - j);
         }
     }
@@ -149,65 +213,53 @@ float calculate_h(unsigned char map[N * N])
 
 void init_end_map(NODE *End)
 {
-    End->map[0*N+0]=1;  
-    End->map[0*N+1]=2;  
-    End->map[0*N+2]=3;  
-    End->map[0*N+3]=4;  
-    End->map[0*N+4]=5; 
-    End->map[1*N+0]=7;  
-    End->map[1*N+1]=7;  
-    End->map[1*N+2]=8;  
-    End->map[1*N+3]=9;  
-    End->map[1*N+4]=10; 
-    End->map[2*N+0]=6;  
-    End->map[2*N+1]=7;  
-    End->map[2*N+2]=11; 
-    End->map[2*N+3]=12; 
-    End->map[2*N+4]=13; 
-    End->map[3*N+0]=14; 
-    End->map[3*N+1]=15; 
-    End->map[3*N+2]=16; 
-    End->map[3*N+3]=17; 
-    End->map[3*N+4]=18; 
-    End->map[4*N+0]=19; 
-    End->map[4*N+1]=20; 
-    End->map[4*N+2]=21; 
-    End->map[4*N+3]=0;  
-    End->map[4*N+4]=0; 
+    End->map[0*N+0]=1;  End->map[0*N+1]=2;  End->map[0*N+2]=3;  End->map[0*N+3]=4;  End->map[0*N+4]=5; 
+    End->map[1*N+0]=7;  End->map[1*N+1]=7;  End->map[1*N+2]=8;  End->map[1*N+3]=9;  End->map[1*N+4]=10; 
+    End->map[2*N+0]=6;  End->map[2*N+1]=7;  End->map[2*N+2]=11; End->map[2*N+3]=12; End->map[2*N+4]=13; 
+    End->map[3*N+0]=14; End->map[3*N+1]=15; End->map[3*N+2]=16; End->map[3*N+3]=17; End->map[3*N+4]=18; 
+    End->map[4*N+0]=19; End->map[4*N+1]=20; End->map[4*N+2]=21; End->map[4*N+3]=0;  End->map[4*N+4]=0; 
 }
 
-void init_start_map(NODE *Start, string inputfile)
+void init_start_map(NODE *Start, string num)//读文件初始化
 {
     ifstream inFile;
-    inputfile.append(".txt");
-    inFile.open(inputfile);
+    num.append(".txt");
+    inFile.open(num);
     if (!inFile) { 
         cout << "error opening data file." << endl;
         return ;
     }
     string temp;
-    string temp2;
+    vector<int> sv;
     int row = 0;
-    int zeroCnt = 0;
     while (!inFile.eof())
     {
         int column = 0;
-        getline(inFile, temp);
-        istringstream is(temp);
-        while (getline(is, temp2, ',')) 
-        {
-            Start->map[row*N+column] = stoi(temp2);
-            if (stoi(temp2) == 0)
-            {
-                Start->zeros[zeroCnt] = row*N+column;
-                zeroCnt += 1;
-            }
+        inFile >> temp;
+        split(temp, sv, ',');
+        for (const auto& s : sv) {
+            Start->map[row*N+column] = s;
             column += 1;
         }
+        assert(column == N);
         row += 1;
     }
+    assert(row == N);
+    int zeroCnt = 0;
+    for (int i = 0; i < N * N; i++)
+    {
+        if (Start->map[i] == 0)
+        {
+            Start->zeros[zeroCnt] = i;
+            zeroCnt += 1;
+        }
+    }
+    assert(zeroCnt == 2);
     Start->g = 0.0;
-    Start->h = calculate_h(Start->map);
+    if (H_NUM == 1)
+        Start->h = calculate_h(Start->map);
+    if (H_NUM == 2)
+        Start->h = calculate_h_2(Start->map);
 }
 
 char get_value_beside(unsigned char map[N * N], int direct, int zeroLoc)
@@ -240,7 +292,7 @@ char get_value_beside(unsigned char map[N * N], int direct, int zeroLoc)
     return -1;
 }
 
-int seven_direction(NODE *node)
+int check_move_seven(NODE *node)
 {
     int sevenLoc = 0;
     for (int i = 0; i < N * N; i++)
@@ -355,26 +407,9 @@ void move_seven(NODE &node, int direct)
     }
 }
 
-float a_star_ida(float g, float bound)
+NODE get_successor(NODE * minNode,map<string, bool> &mapDup)
 {
-    
-    NODE *minNode = new NODE();
-    float dMin = 99999;
-    *minNode = Openlist.top();
-    float f;
-    f = g + calculate_h(minNode->map);
-    if (f > bound)
-    {
-        return f;
-    }
-    if(node_map_equal(*minNode, End))
-    {
-        nextNode.g++;
-        return -1;
-    }
-    float dLim = f;
-
-    // move zero 0
+    NODE nextNode;
     for (int i = 1; i <= 4; i++)
     {
         char adjValue = get_value_beside(minNode->map, i, minNode->zeros[0]);
@@ -383,26 +418,34 @@ float a_star_ida(float g, float bound)
 
         nextNode = *minNode;
         move_zero(nextNode, i, 0, adjValue);
-        string nextStr = map_to_string(nextNode.map);
-        if (state.count(nextStr) == 0)
+        string nextStr = uc2str(nextNode.map);
+        if (mapDup.count(nextStr) == 0)
         {
             nextNode.parent = minNode;
             nextNode.zeroNum = 0;
             nextNode.direct = i;
-            state[nextStr] = true;
+            mapDup[nextStr] = true;
             nextNode.g++;
-            nextNode.h = calculate_h(nextNode.map);
-            Openlist.push(nextNode);
-            dLim = a_star_ida(g + 1, bound);
-            if (dLim == -1)
-                return -1;
-            if (dLim < dMin)
-                dMin = dLim;
-            Openlist.pop();
+            if (H_NUM == 1)
+                nextNode.h = calculate_h(nextNode.map);
+            if (H_NUM == 2)
+                nextNode.h = calculate_h_2(nextNode.map);
+            // list.push(nextNode);
+            return nextNode;
         }
+        // nextNode.parent = minNode;
+        // nextNode.zeroNum = 0;
+        // nextNode.direct = i;
+        // //mapDup[nextStr] = true;
+        // nextNode.g++;
+        // if (H_NUM == 1)
+        //     nextNode.h = calculate_h(nextNode.map);
+        // if (H_NUM == 2)
+        //     nextNode.h = calculate_h_2(nextNode.map);
+        // list.push_back(nextNode);
     }
 
-    // move zero 1
+    // cout << "  cdd3.1\n";
     for (int i = 1; i <= 4; i++)
     {
         char adjValue = get_value_beside(minNode->map, i, minNode->zeros[1]);
@@ -411,75 +454,134 @@ float a_star_ida(float g, float bound)
 
         nextNode = *minNode;
         move_zero(nextNode, i, 1, adjValue);
-        string nextStr = map_to_string(nextNode.map);
-        if (state.count(nextStr) == 0)
+        string nextStr = uc2str(nextNode.map);
+        if (mapDup.count(nextStr) == 0)
         {
             nextNode.parent = minNode;
             nextNode.zeroNum = 1;
             nextNode.direct = i;
-            state[nextStr] = true;
+            mapDup[nextStr] = true;
             nextNode.g++;
-            nextNode.h = calculate_h(nextNode.map);
-            Openlist.push(nextNode);
-            dLim = a_star_ida(g + 1, bound);
-            if (dLim == -1)
-                return -1;
-            if (dLim < dMin)
-                dMin = dLim;
-            Openlist.pop();
+            if (H_NUM == 1)
+                nextNode.h = calculate_h(nextNode.map);
+            if (H_NUM == 2)
+                nextNode.h = calculate_h_2(nextNode.map);
+            // list.push(nextNode);
+             return nextNode;
         }
-    }
-
-    // move 7 if possible
-    int sevenDirect = seven_direction(minNode);
+        // nextNode.parent = minNode;
+        // nextNode.zeroNum = 1;
+        // nextNode.direct = i;
+        // //mapDup[nextStr] = true;
+        // nextNode.g++;
+        // if (H_NUM == 1)
+        //     nextNode.h = calculate_h(nextNode.map);
+        // if (H_NUM == 2)
+        //     nextNode.h = calculate_h_2(nextNode.map);
+        // list.push_back(nextNode);
+    }//for (int i = 1; i <= 4; i++)
+    // cout << "  cdd3.2\n";
+    int sevenDirect = check_move_seven(minNode);
     if (sevenDirect > 0)
     {
         nextNode = *minNode;
         move_seven(nextNode, sevenDirect);
-        string nextStr = map_to_string(nextNode.map);
-        if (state.count(nextStr) == 0)
+        string nextStr = uc2str(nextNode.map);
+        if (mapDup.count(nextStr) == 0)
         {
             nextNode.parent = minNode;
             nextNode.zeroNum = 2;
             nextNode.direct = sevenDirect;
-            state[nextStr] = true;
+            mapDup[nextStr] = true;
             nextNode.g++;
-            nextNode.h = calculate_h(nextNode.map);
-            Openlist.push(nextNode);
-            dLim = a_star_ida(g + 1, bound);
-            if (dLim == -1)
-                return -1;
-            if (dLim < dMin)
-                dMin = dLim;
-            Openlist.pop();
+            if (H_NUM == 1)
+                nextNode.h = calculate_h(nextNode.map);
+            if (H_NUM == 2)
+                nextNode.h = calculate_h_2(nextNode.map);
+            // list.push(nextNode);
+             return nextNode;
         }
+        // nextNode.parent = minNode;
+        // nextNode.zeroNum = 2;
+        // nextNode.direct = sevenDirect;
+        // //mapDup[nextStr] = true;
+        // nextNode.g++;
+        // if (H_NUM == 1)
+        //     nextNode.h = calculate_h(nextNode.map);
+        // if (H_NUM == 2)
+        //     nextNode.h = calculate_h_2(nextNode.map);
+        // list.push_back(nextNode);
+    }//if (sevenDirect > 0)
+    // cout << "  cdd3.3\n";
+    return *minNode;
+}
+float ids_dfs(NODE head, map<string, bool> &mapDup, float g, float bound)
+{
+    NODE nextNode;
+    float dMin = 99999;
+    float f;
+    if (H_NUM == 1)
+        f = g + calculate_h(head.map);
+    if (H_NUM == 2)
+        f = g + calculate_h_2(head.map);
+    if (f > bound)
+    {
+        return f;
+    }
+    if(node_map_equal(head, End))
+    {
+        // nextNode.g++;
+        print_path(&head, &pathLen, path);
+        return -1;
+    }
+    float f1;
+    nextNode = get_successor(&head,mapDup);
+    while (uc2str(nextNode.map) != uc2str(head.map))
+    {
+        f1 = ids_dfs(nextNode,mapDup,g+1,bound);
+        // cout << "    cdd4 "<<f1<< "  "<< "  "<<g<< "  "<< bound<<"\n";
+        if(f1 == -1)
+            return -1;
+        else
+        {
+            if(f1<dMin)
+                dMin = f1;
+        }
+        nextNode = get_successor(&head,mapDup);
     }
     return dMin;
 }
 
-void ida_star(string num)
+bool ida_star(string num)
 {
+    //stack<NODE> Open;
+    NODE nextNode;
+    map<string, bool> mapDup;
+    //int pathLen = 1;
+
     init_end_map(&End);
     init_start_map(&Start, num);
-    state[map_to_string(Start.map)] = true;
-    Openlist.push(Start);
-
     float bound;
-    bound = calculate_h(Start.map);
-    float dLim;
+    if (H_NUM == 1)
+        bound = calculate_h(Start.map);
+    if (H_NUM == 2)
+        bound = calculate_h_2(Start.map);
+    float dLim = bound;
     while (true)
     {
-        dLim = a_star_ida(0, bound);
-        if (dLim == -1)
+        mapDup.clear();
+        mapDup[uc2str(Start.map)] = true;
+        dLim = ids_dfs(Start, mapDup, 0, bound);
+        if (dLim == -1)//成功
         {
-            return ;
+            return true;
         }
         if (dLim > MAX_BOUND)
         {
             cout << "Out of MAX_BOUND !" << endl;
-            return ;
+            return false;
         }
-        bound = dLim;
+        bound = dLim;//加大阈值
     }
 }
 
@@ -487,21 +589,28 @@ int main(int argc, char *argv[])
 {
     string num;
     num = "..\\input\\";
-    num += argv[1][0];
+    num  += argv[1][0];
     clock_t clkStart, clkEnd;
-    int pathLen = 0;
-    string path;
-    init_end_map(&End);
-    init_start_map(&Start, num);
-    clkStart = clock();
-    ida_star(num);
-    clkEnd = clock();
-    show_path(&nextNode, &pathLen, path);
-    cout << endl << "Path length = " << pathLen << endl;
+    string outfile;
+    outfile = "..\\output\\";
+    outfile += argv[1][0];
+    outfile.append(".txt");
     ofstream out;
-    out.open("path.txt");
-    out << path << endl;
-    out.close();
+    //cout << "cdd\n";
+    clkStart = clock();
+    if(ida_star(num))
+    {
+        cout << endl << "Path length = " << pathLen << endl;
+        out.open(outfile);
+        out << path << endl;
+        out.close();
+    }
+    else
+    {
+        cout << "fail" << endl;
+    }
+    
+    clkEnd = clock();
     double endtime = (double)(clkEnd - clkStart) / CLOCKS_PER_SEC;
     cout << "Total time:" << endtime << endl;
 }
